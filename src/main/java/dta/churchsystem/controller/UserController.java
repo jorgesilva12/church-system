@@ -20,7 +20,7 @@ public class UserController {
     public List<User> list(){return userService.list();}
 
     @PostMapping("/create")
-    public User create(@Valid @RequestBody UserForm userForm){return userService.create(userForm);}
+    public User create(@RequestBody @Valid UserForm userForm){return userService.create(userForm);}
 
 
 }
