@@ -15,6 +15,7 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserForm {
+    private int id;
     @NotBlank(message = "O campo Nome não pode ser vazio")
     private String name;
     @CPF
