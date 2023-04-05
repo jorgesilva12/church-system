@@ -1,78 +1,65 @@
 package dta.churchsystem.service;
 
+import dta.churchsystem.model.User;
 import dta.churchsystem.model.form.UserForm;
 import dta.churchsystem.repository.UserRepository;
-import dta.churchsystem.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.nio.file.attribute.UserPrincipalNotFoundException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class UserService {
     @Autowired
-    UserRepository userRepository;
+    private UserRepository userRepository;
+    @Autowired
+    private PasswordEncoder encoder;
 
-    public List<User> list(){return userRepository.findAll();}
-    public User findByName(String name){return userRepository.findByName(name);}
-    public User findByLogin(String login){return userRepository.findByLogin(login);}
-    public User findInUser(String field, String value){
-        User user = new User();
-        if(field.equals("name")){
-            return userRepository.findByName(value);
-        }else if(field.equals("login")){
-            return userRepository.findByLogin(value);
-        }
-        return user;
-    }
-    public User createStar(User user){return userRepository.save(user);}
+    public Optional<User> findByUsername(String username){return userRepository.findByUsername(username);}
+
+    public User createStart(User user) {return userRepository.save(user);}
+
     public User create(UserForm userForm) {
-        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-
         User user = new User();
         user.setName(userForm.getName());
-        user.setCpf(userForm.getCpf());
+        user.setUsername(userForm.getUsername());
+        user.setPassword(encoder.encode(userForm.getPassword()));
         user.setEmail(userForm.getEmail());
-        try {
-            user.setDateBirth(sdf.parse(userForm.getDateBirth()));
-        } catch (ParseException e) {
-            throw new RuntimeException(e);
-        }
-        user.setLogin(userForm.getLogin());
-        user.setPassword(userForm.getPassword());
+        userForm.getRoles().forEach(role -> {
+            user.getRoles().add(role);
+        });
         return userRepository.save(user);
     }
 
-    public User update(UserForm userForm) throws UserPrincipalNotFoundException {
-        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-        User user = userRepository.findById(userForm.getId());
-        if(user==null){
-            throw new RuntimeException("ID de usuário não encontrado: " + userForm.getId());
-        }else{
+    public User update(UserForm userForm) {
+        Optional<User> userOptional = this.findByUsername(userForm.getUsername());
+        User user = new User();
+        if(!userOptional.isEmpty()){
+            user = userOptional.get();
+            user.setId(userOptional.get().getId());
             user.setName(userForm.getName());
-            user.setCpf(userForm.getCpf());
+            user.setUsername(userForm.getUsername());
+            user.setPassword(encoder.encode(userForm.getPassword()));
             user.setEmail(userForm.getEmail());
-            try {
-                user.setDateBirth(sdf.parse(userForm.getDateBirth()));
-            } catch (ParseException e) {
-                throw new RuntimeException(e);
-            }
-            user.setLogin(userForm.getLogin());
-            user.setPassword(userForm.getPassword());
-            return userRepository.save(user);
+            user.getRoles().clear();
+            User finalUser = user;
+            userForm.getRoles().forEach(role -> {
+                finalUser.getRoles().add(role);
+            });
+            return userRepository.save(finalUser);
+        }else{
+            throw new RuntimeException("User not found with username: " + userForm.getUsername());
         }
     }
-
-    public String delete(int id) {
-        User user = userRepository.findById(id);
-        if(user==null) {
-            throw new RuntimeException("ID de usuário não encontrado: " +id);
+    public String delete(UUID uuid) {
+        User user = userRepository.findAllById(uuid);
+        if(user ==null){
+            throw new RuntimeException("User not found.");
         }else {
-            userRepository.delete(user);
-            return "Usuario deletado com sucesso:"+user.toString();
+            userRepository.deleteById(uuid);
+            return "User deleted with sucess!!!";
         }
     }
 }
